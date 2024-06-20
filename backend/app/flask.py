@@ -1,9 +1,8 @@
-from dataclasses import dataclass
-
 import pandas as pd
-from flask import Flask
+from flask import Flask, current_app
+from flask_cors import CORS
 
-from backend.app.model import S3Key
+from backend.app.model import S3Key, update_dataframe_for_date_limits
 from backend.app.s3 import S3Service
 
 
@@ -14,7 +13,9 @@ class Cache:
 
     def load_for(self, keys: list[S3Key], s3: S3Service):
         for key in keys:
-            self.loaded_data[key.name] = (s3.request_for_set(key.key, key.extension_name))
+            current_app.logger.info(f'Loading data from {key.name}')
+            self.loaded_data[key.name] = update_dataframe_for_date_limits(s3.request_for_set(key.key,
+                                                                                             key.extension_name))
 
     def load_cache(self, s3: S3Service):
         self.load_for(self.s3_objects, s3)
@@ -30,11 +31,13 @@ class Config:
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config())
+    with app.app_context():
+        app.config.from_object(Config())
+    CORS(app)
 
     # Route for getting data from a query
     @app.route('/', methods=['GET'])
     def get_data():
-        app.config['S3'].request_for_set()
+        pass
 
     return app

@@ -18,6 +18,12 @@ class S3Key:
     extension: str
     load_time: datetime
 
+    def __eq__(self, other):
+        return self.key == other.key and self.load_time == other.load_time
+
+    def __hash__(self):
+        return hash(self.key) + hash(self.load_time)
+
     @property
     def extension_name(self):
         return _KNOWN_EXTENSIONS[self.extension]

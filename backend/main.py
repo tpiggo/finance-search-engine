@@ -1,17 +1,10 @@
-import datetime
-import numpy as np
-
-from backend.app.s3 import S3Service
+from backend.app.flask import create_app
 
 
-def find_end_values(df):
-    df['open_time_ts'] = df['open_time'].values.astype(np.int64) // 10 ** 9
-    return df.loc[df['open_time_ts'].mod(86400).eq(0)]
+def run_app():
+    app = create_app()
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 
 if __name__ == '__main__':
-    print(datetime.datetime.now())
-    service = S3Service()
-    out = service.get_all_sets()
-    print(datetime.datetime.now())
-    print("s3")
+    run_app()

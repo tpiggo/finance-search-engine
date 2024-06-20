@@ -3,22 +3,25 @@ import os
 import boto3
 import pandas as pd
 
-from backend.mapper import Mapper
+from backend.app.mapper import Mapper
+from backend.app.model import S3Key
 
 
 class S3Service:
     _client = boto3.client("s3", aws_access_key_id=os.environ["S3_ID"], aws_secret_access_key=os.environ["S3_PASSWORD"])
     _bucket = 'monoceros-datasets'
     _path = 'binance/crypto/ALL/bars/1h'
-    _extension = 'Parquet'
     _out = 'CSV'
 
-    def request_for_on_set(self, key: str, extension: str = None):
-        extension = extension or self._extension
+    def get_all_sets(self):
+        return [S3Key.from_string(item['Key'], self._path)
+                for item in self._client.list_objects_v2(Bucket=self._bucket, Prefix=self._path)['Contents']]
+
+    def request_for_set(self, key: str, extension: str):
         mapper = Mapper()
         resp = self._client.select_object_content(
             Bucket=self._bucket,
-            Key=fr'{self._path}/{key}/{key}.{extension.lower()}',
+            Key=fr'{key}',
             ExpressionType='SQL',
             Expression=f'SELECT {mapper.produce_query()} FROM s3object s',
             InputSerialization={extension: {}},

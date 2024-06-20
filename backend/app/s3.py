@@ -3,8 +3,8 @@ import os
 import boto3
 import pandas as pd
 
-from backend.app.mapper import Mapper
-from backend.app.model import S3Key
+from app.mapper import Mapper
+from app.model import S3Key
 
 
 class S3Service:

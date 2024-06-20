@@ -2,8 +2,8 @@ import pandas as pd
 from flask import Flask, current_app
 from flask_cors import CORS
 
-from backend.app.model import S3Key, update_dataframe_for_date_limits
-from backend.app.s3 import S3Service
+from app.model import S3Key, update_dataframe_for_date_limits
+from app.s3 import S3Service
 
 
 class Cache:
@@ -26,7 +26,7 @@ class Config:
     CACHE = Cache(S3.get_all_sets())
 
     def __init__(self):
-        self.CACHE.load_cache(self.S3)
+        pass # self.CACHE.load_cache(self.S3)
 
 
 def create_app():

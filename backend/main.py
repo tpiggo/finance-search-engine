@@ -1,4 +1,4 @@
-from backend.app.flask import create_app
+from app.flask import create_app
 
 
 def run_app():

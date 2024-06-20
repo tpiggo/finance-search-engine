@@ -14,7 +14,7 @@ class S3Service:
     _out = 'CSV'
 
     def get_all_sets(self):
-        return [S3Key.from_string(item['Key'], self._path)
+        return [S3Key.from_info(item['Key'], self._path, item['LastModified'])
                 for item in self._client.list_objects_v2(Bucket=self._bucket, Prefix=self._path)['Contents']]
 
     def request_for_set(self, key: str, extension: str):

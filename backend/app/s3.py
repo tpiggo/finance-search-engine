@@ -3,8 +3,7 @@ import os
 import boto3
 import pandas as pd
 
-from app.mapper import Mapper
-from app.model import S3Key
+from app.model import S3Key, Tick
 
 
 class S3Service:
@@ -18,12 +17,11 @@ class S3Service:
                 for item in self._client.list_objects_v2(Bucket=self._bucket, Prefix=self._path)['Contents']]
 
     def request_for_set(self, key: str, extension: str):
-        mapper = Mapper()
         resp = self._client.select_object_content(
             Bucket=self._bucket,
             Key=fr'{key}',
             ExpressionType='SQL',
-            Expression=f'SELECT {mapper.produce_query()} FROM s3object s',
+            Expression=f'SELECT {Tick.produce_query()} FROM s3object s',
             InputSerialization={extension: {}},
             OutputSerialization={self._out: {}},
         )
@@ -31,5 +29,5 @@ class S3Service:
                            for event in resp['Payload']
                            if 'Records' in event]
         joined = ''.join(list_of_strings).strip()
-        return pd.DataFrame([mapper.convert_string_to_object(i, index) for index, i in enumerate(joined.split("\n"))],
-                            columns=mapper.get_order())
+        return pd.DataFrame([Tick.convert_string_to_object(i, index) for index, i in enumerate(joined.split("\n"))],
+                            columns=Tick.get_order())

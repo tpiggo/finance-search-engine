@@ -1,43 +1,33 @@
-import pandas as pd
-from flask import Flask, current_app
+import os
+from logging import INFO
+
+from flask import Flask, Blueprint
 from flask_cors import CORS
+from flask_restx import Api
 
-from app.model import S3Key, update_dataframe_for_date_limits
+from .cache import Cache
+from .controller import ns
+
 from app.s3 import S3Service
-
-
-class Cache:
-    def __init__(self, keys: list[S3Key]):
-        self.s3_objects: list[S3Key] = keys
-        self.loaded_data: dict[str, pd.DataFrame] = {}
-
-    def load_for(self, keys: list[S3Key], s3: S3Service):
-        for key in keys:
-            current_app.logger.info(f'Loading data from {key.name}')
-            self.loaded_data[key.name] = update_dataframe_for_date_limits(s3.request_for_set(key.key,
-                                                                                             key.extension_name))
-
-    def load_cache(self, s3: S3Service):
-        self.load_for(self.s3_objects, s3)
 
 
 class Config:
     S3 = S3Service()
+    should_load = os.environ.get('SHOULD_LOAD', 'true').lower() == 'true'
     CACHE = Cache(S3.get_all_sets())
 
     def __init__(self):
-        pass # self.CACHE.load_cache(self.S3)
+        self.CACHE.load_cache(self.S3)
 
 
 def create_app():
     app = Flask(__name__)
     with app.app_context():
         app.config.from_object(Config())
+        app.logger.setLevel(INFO)
     CORS(app)
-
-    # Route for getting data from a query
-    @app.route('/', methods=['GET'])
-    def get_data():
-        pass
-
+    bp = Blueprint('api', __name__, url_prefix='/api/v1')
+    api = Api(bp)
+    api.add_namespace(ns)
+    app.register_blueprint(bp)
     return app

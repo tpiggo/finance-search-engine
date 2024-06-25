@@ -54,8 +54,8 @@ class QueryController(CacheResource):
         comparison_fn = built_query.direction.get_fn(built_query.size)
         for item in built_query.items:
             df = self.get_cache().loaded_data[item]
-            df['delta'] = (df['open'] - df['close'].shift(built_query.num_days)) / df['open']
             df['end'] = df['open_time'].shift(built_query.num_days)
+            df['delta'] = (df['close'] - df['open'].shift(built_query.num_days)) / df['open']
             df.rename({'open_time': 'start'}, axis=1, inplace=True)
             df['name'] = item
             cleaned: pandas.DataFrame = df.loc[comparison_fn(df['delta'])]

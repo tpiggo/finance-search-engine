@@ -1,6 +1,7 @@
 from dataclasses import dataclass, fields
 from datetime import datetime
-
+from enum import Enum
+from typing import Union, Any
 import numpy as np
 import pandas as pd
 
@@ -12,6 +13,15 @@ _KNOWN_EXTENSIONS = {
     'csv': "CSV",
     'json': "JSON",
 }
+
+
+def apply_on_field(fields_: Union[list[Field], dict[str, Field]], index: Union[str, int], attribute: Any):
+    field = fields_[index]
+    if isinstance(attribute, field.type):
+        return attribute
+    if isinstance(field, Field):
+        return field.mapper(attribute)
+    return field.type(attribute)
 
 
 @dataclass
@@ -45,12 +55,12 @@ def update_dataframe_for_date_limits(df: pd.DataFrame):
 
 @dataclass
 class Tick:
-    open_time: datetime = field(mapper=date_from_int96_timestamp)
     open: float
     close: float
     high: float
     low: float
     volume: float
+    open_time: datetime = field(mapper=date_from_int96_timestamp)
 
     @classmethod
     def produce_query(cls):
@@ -63,10 +73,45 @@ class Tick:
     @classmethod
     def convert_string_to_object(cls, string: str, _index: int):
         fields_ = [field_ for field_ in fields(cls)]
+        return [apply_on_field(fields_, index, attr) if attr != '' else None
+                for index, attr in enumerate(string.split(","))]
 
-        def get_value(index: int, attribute):
-            if isinstance(fields_[index], Field):
-                return fields_[index].mapper(attribute)
-            return attribute
 
-        return [get_value(index, attr) if attr != '' else None for index, attr in enumerate(string.split(","))]
+def gte(value: float):
+    def comparison(compared_to: float):
+        return compared_to >= value
+
+    return comparison
+
+
+def lte(value: float):
+    def comparison(compared_to: float):
+        return compared_to <= value
+
+    return comparison
+
+
+class Direction(Enum):
+    UP = ("UP", gte)
+    DOWN = ("DOWN", lte)
+
+    def get_fn(self, value: float):
+        return self.value[1](value)
+
+
+@dataclass
+class Query:
+    size: float
+    num_days: int
+    direction: Direction = field(mapper=lambda x: Direction[x])
+    items: list[str] = field(default_factory=list)
+
+    @classmethod
+    def build(cls, input_dict: dict):
+        fields_ = {field_.name: field_ for field_ in fields(cls)}
+        return cls(**{field_: apply_on_field(fields_, field_, value) for field_, value in input_dict.items()})
+
+
+if __name__ == '__main__':
+    for i in Direction:
+        print(f'{i.name}')
